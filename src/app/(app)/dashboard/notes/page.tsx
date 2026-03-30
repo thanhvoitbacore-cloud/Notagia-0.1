@@ -5,15 +5,14 @@ import Link from "next/link";
 import Form from "next/form";
 import { FileText, Plus, Search } from "lucide-react";
 
-export default async function NotesIndexPage({
-  searchParams,
-}: {
+export default async function NotesIndexPage(props: {
+  params: Promise<any>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const resolvedSearchParams = await searchParams;
+  const resolvedSearchParams = await props.searchParams;
   const queryParam = resolvedSearchParams?.q;
   const query = typeof queryParam === "string" ? queryParam : "";
 

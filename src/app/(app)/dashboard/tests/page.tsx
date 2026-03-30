@@ -4,15 +4,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Brain, Search, DatabaseZap, Clock, Award } from "lucide-react";
 
-export default async function TestsIndexPage({
-  searchParams,
-}: {
+export default async function TestsIndexPage(props: {
+  params: Promise<any>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const resolvedSearchParams = await searchParams;
+  const resolvedSearchParams = await props.searchParams;
   const queryParam = resolvedSearchParams?.q;
   const query = typeof queryParam === "string" ? queryParam : "";
 
