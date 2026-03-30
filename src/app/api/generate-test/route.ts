@@ -37,17 +37,20 @@ export async function POST(req: NextRequest) {
 System Instruction: 
 Read the provided note content and return a JSON object with 'test_title' (string) and an array of 'questions' (3-10 items). 
 Each question must have 'question_text' (string), an array of exactly 4 'options' (string arrays), a 'correct_answer_id' (string) which must be EXACTLY ONE OF: 'A', 'B', 'C', or 'D', and an 'explanation' (string) explaining why the answer is correct based on the text.
+
+CRITICAL LANGUAGE REQUIREMENT: You MUST generate the test (title, questions, options, and explanation) strictly in Vietnamese (Tiếng Việt). However, you MUST keep specific technical terms, keywords, and formulas in their original English form (or whatever original language they are in the note) if they are best understood that way.
+
 Return ONLY a valid JSON object without any backticks, markdown wrapping, or extra text.
 
 Example JSON output structure:
 {
-  "test_title": "Understanding Photosynthesis",
+  "test_title": "Tìm hiểu về Photosynthesis (Quang hợp)",
   "questions": [
     {
-      "question_text": "What is the primary function of chlorophyll?",
-      "options": ["To absorb water", "To absorb light", "To release oxygen", "To store glucose"],
+      "question_text": "Chức năng chính của chlorophyll là gì?",
+      "options": ["Hấp thụ nước", "Hấp thụ ánh sáng", "Giải phóng oxy", "Lưu trữ glucose"],
       "correct_answer_id": "B",
-      "explanation": "Chlorophyll is the green pigment in plants responsible for absorbing light energy to drive the process of photosynthesis."
+      "explanation": "Chlorophyll là sắc tố màu xanh lá cây trong thực vật, có chức năng chính là hấp thụ năng lượng ánh sáng để thúc đẩy quá trình photosynthesis."
     }
   ]
 }
