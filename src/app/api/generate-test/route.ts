@@ -71,6 +71,4 @@ ${noteContent}
     console.error("Generate Test Error:", error);
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
-} error: error.message || "Internal Server Error" }, { status: 500 });
-  }
 }
