@@ -1,19 +1,6 @@
-import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
-import { SettingsForm } from "@/components/settings-form";
+"use client";
 
-export default async function SettingsPage() {
-  const session = await getSession();
-  if (!session) redirect("/login");
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { name: true, email: true },
-  });
-
-  if (!user) redirect("/login");
-
+export default function SettingsPage() {
   return (
     <main className="flex-1 flex flex-col p-6 md:p-10 gap-8">
       <header>
@@ -21,7 +8,11 @@ export default async function SettingsPage() {
         <p className="text-zinc-400 text-sm mt-1">Manage your profile and security preferences.</p>
       </header>
 
-      <SettingsForm user={user} />
+      <div className="flex flex-col items-center justify-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02] py-20 mt-4">
+        <p className="text-zinc-400 font-medium text-center max-w-md">
+          You are currently using the app in Guest Mode. Account settings are not available since no data is saved to the database.
+        </p>
+      </div>
     </main>
   );
 }

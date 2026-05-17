@@ -1,38 +1,33 @@
-import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
 import { TestPlayer } from "@/components/test-player";
-import { deleteTest, toggleTestVisibility } from "@/app/actions/tests";
 import Link from "next/link";
-import { ArrowLeft, Trash2, Globe, Lock } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
+import { use } from "react";
 
-export default async function PlayTestPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+export default function PlayTestPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
+  const router = useRouter();
+  const { tests, deleteTest, isLoaded } = useStore();
 
-  const { id } = await params;
+  if (!isLoaded) return null;
 
-  const test = await prisma.test.findUnique({
-    where: { id },
-    include: {
-      questions: {
-        include: { options: true }
-      }
-    }
-  });
+  const test = tests.find((t) => t.id === id);
 
-  if (!test) redirect("/dashboard/tests");
-
-  // Allow playing public tests or own tests
-  if (test.userId !== session.userId && !test.isPublic) {
-    redirect("/dashboard/tests");
+  if (!test) {
+    router.replace("/dashboard/tests");
+    return null;
   }
 
-  const isOwner = test.userId === session.userId;
-  const deleteAction = deleteTest.bind(null, test.id);
-  
-  // Note: Toggle action only if owner
-  const toggleAction = toggleTestVisibility.bind(null, test.id, !test.isPublic);
+  const handleDelete = () => {
+    if (confirm("Are you sure you want to delete this test?")) {
+      deleteTest(test.id);
+      router.push("/dashboard/tests");
+    }
+  };
 
   return (
     <main className="flex-1 flex flex-col p-6 md:p-8 bg-black relative min-h-full">
@@ -45,32 +40,16 @@ export default async function PlayTestPage({ params }: { params: Promise<{ id: s
           Quit
         </Link>
         
-        {isOwner && (
-          <div className="flex items-center gap-2">
-            <form action={toggleAction}>
-              <button
-                type="submit"
-                className={`inline-flex h-9 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition ${
-                  test.isPublic 
-                    ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20" 
-                    : "bg-white/5 text-zinc-400 hover:bg-white/10 border border-white/5"
-                }`}
-              >
-                {test.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                {test.isPublic ? "Publicly Listed" : "Make Public"}
-              </button>
-            </form>
-            <form action={deleteAction}>
-              <button
-                type="submit"
-                className="inline-flex h-9 items-center justify-center rounded-xl px-3 text-sm font-medium text-red-500/80 transition hover:bg-red-500/10 hover:text-red-400"
-                title="Delete Test"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </form>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="inline-flex h-9 items-center justify-center rounded-xl px-3 text-sm font-medium text-red-500/80 transition hover:bg-red-500/10 hover:text-red-400"
+            title="Delete Test"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 w-full flex items-start justify-center">

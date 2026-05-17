@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useStore, Note, Question, Option } from "@/lib/store";
 
-export function GenerateTestButton({ noteId }: { noteId: string }) {
+export function GenerateTestButton({ note }: { note: Note }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { addTest } = useStore();
 
   async function handleGenerate() {
     try {
@@ -14,15 +16,45 @@ export function GenerateTestButton({ noteId }: { noteId: string }) {
       const res = await fetch("/api/generate-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noteId }),
+        body: JSON.stringify({ noteTitle: note.title, noteContent: note.content }),
       });
 
-      const data = await res.json();
+      const json = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to generate test");
+        throw new Error(json.error || "Failed to generate test");
       }
 
-      router.push(`/dashboard/tests/${data.testId}`);
+      const { test_title, questions } = json.data;
+
+      // Transform the JSON data into our local store structure
+      const letterMap = ["A", "B", "C", "D"];
+      const generatedQuestions = questions.map((q: any, qIndex: number) => {
+        const questionId = `q_${Math.random().toString(36).substr(2, 9)}`;
+        const options: Option[] = q.options.map((optText: string, oIndex: number) => ({
+          id: `${questionId}-${letterMap[oIndex]}`,
+          questionId,
+          optionText: optText,
+        }));
+
+        const correctAnswerId = `${questionId}-${q.correct_answer_id}`;
+
+        return {
+          id: questionId,
+          testId: "", // Will be set when creating test, but we bundle it inside test directly
+          questionText: q.question_text,
+          correctAnswerId,
+          explanation: q.explanation,
+          options,
+        };
+      });
+
+      const newTest = addTest({
+        noteId: note.id,
+        title: test_title,
+        questions: generatedQuestions,
+      });
+
+      router.push(`/dashboard/tests/${newTest.id}`);
     } catch (error: any) {
       console.error(error);
       alert(error.message);

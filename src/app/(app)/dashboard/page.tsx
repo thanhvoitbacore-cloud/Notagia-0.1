@@ -1,23 +1,22 @@
-import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useStore } from "@/lib/store";
 import { FileText } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
-export default async function DashboardPage() {
-  const session = await getSession();
-  if (!session) redirect("/login");
+export default function DashboardPage() {
+  const { notes, tests, isLoaded } = useStore();
+  const [greeting, setGreeting] = useState("");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { name: true, email: true },
-  });
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("morning");
+    else if (hour < 18) setGreeting("afternoon");
+    else setGreeting("evening");
+  }, []);
 
-  if (!user) redirect("/login");
-
-  // Fetch some stats (e.g., number of notes)
-  const notesCount = await prisma.note.count({ where: { userId: session.userId } });
-  const testsCount = await prisma.test.count({ where: { userId: session.userId } });
+  if (!isLoaded) return null; // or a loading spinner
 
   return (
     <main className="flex-1 flex flex-col p-6 md:p-10 gap-8">
@@ -25,7 +24,7 @@ export default async function DashboardPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">
-            Good {getGreeting()}, {user.name?.split(" ")[0] ?? "there"} 👋
+            Good {greeting}, there 👋
           </h1>
           <p className="text-sm text-zinc-400 mt-1">
             Let's organize your knowledge for today.
@@ -36,8 +35,8 @@ export default async function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
-          { label: "Total Notes", value: notesCount.toString() },
-          { label: "Generated Tests", value: testsCount.toString() },
+          { label: "Total Notes", value: notes.length.toString() },
+          { label: "Generated Tests", value: tests.length.toString() },
         ].map(({ label, value }) => (
           <div
             key={label}
@@ -69,11 +68,4 @@ export default async function DashboardPage() {
       </div>
     </main>
   );
-}
-
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "morning";
-  if (hour < 18) return "afternoon";
-  return "evening";
 }

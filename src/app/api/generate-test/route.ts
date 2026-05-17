@@ -1,28 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json();
-    const { noteId } = body;
+    const { noteTitle, noteContent } = body;
 
-    if (!noteId) {
-      return NextResponse.json({ error: "Note ID is required" }, { status: 400 });
-    }
-
-    const note = await prisma.note.findUnique({
-      where: { id: noteId },
-    });
-
-    if (!note || note.userId !== session.userId) {
-      return NextResponse.json({ error: "Note not found or unauthorized" }, { status: 404 });
+    if (!noteContent) {
+      return NextResponse.json({ error: "Note content is required" }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -56,8 +41,8 @@ Example JSON output structure:
 }
 
 NOTE CONTENT:
-${note.title}
-${note.content}
+${noteTitle || ""}
+${noteContent}
     `;
 
     const result = await model.generateContent({
@@ -80,55 +65,12 @@ ${note.content}
       return NextResponse.json({ error: "Invalid AI response structure" }, { status: 500 });
     }
 
-    // Save the Test, Questions, and Options inside a transaction
-    const test = await prisma.$transaction(async (tx: any) => {
-      const newTest = await tx.test.create({
-        data: {
-          title: parsedJson.test_title,
-          noteId: note.id,
-          userId: session.userId,
-          isPublic: false,
-        },
-      });
-
-      for (const q of parsedJson.questions) {
-        const newQuestion = await tx.question.create({
-          data: {
-            testId: newTest.id,
-            questionText: q.question_text,
-            correctAnswerId: "temp",
-            explanation: q.explanation || "No explanation provided.",
-          },
-        });
-
-        const letterMap = ["A", "B", "C", "D"];
-        const optionPromises = (q.options as string[]).map((optText, index) => {
-          return tx.option.create({
-            data: {
-              id: `${newQuestion.id}-${letterMap[index]}`,
-              questionId: newQuestion.id,
-              optionText: String(optText),
-            },
-          });
-        });
-
-        await Promise.all(optionPromises);
-
-        // Update correct answer reference to match the generated ID
-        await tx.question.update({
-          where: { id: newQuestion.id },
-          data: { correctAnswerId: `${newQuestion.id}-${q.correct_answer_id}` },
-        });
-      }
-      return newTest;
-    }, {
-      maxWait: 5000,
-      timeout: 20000,
-    });
-
-    return NextResponse.json({ success: true, testId: test.id });
+    // Return the generated JSON directly to the client
+    return NextResponse.json({ success: true, data: parsedJson });
   } catch (error: any) {
     console.error("Generate Test Error:", error);
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+  }
+} error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

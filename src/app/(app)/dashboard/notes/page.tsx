@@ -1,41 +1,26 @@
-import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+"use client";
+
 import Link from "next/link";
-import Form from "next/form";
 import { FileText, Plus, Search } from "lucide-react";
+import { useStore } from "@/lib/store";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
-export default async function NotesIndexPage(props: {
-  params: Promise<any>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+export default function NotesIndexPage() {
+  const { notes, tests, isLoaded } = useStore();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
+  const [query, setQuery] = useState(initialQuery);
 
-  const resolvedSearchParams = await props.searchParams;
-  const queryParam = resolvedSearchParams?.q;
-  const query = typeof queryParam === "string" ? queryParam : "";
+  if (!isLoaded) return null;
 
-  const notes = await prisma.note.findMany({
-    where: {
-      userId: session.userId,
-      ...(query
-        ? {
-            OR: [
-              { title: { contains: query, mode: "insensitive" } },
-              { content: { contains: query, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      updatedAt: true,
-      _count: { select: { tests: true } },
-    },
+  const filteredNotes = notes.filter((note) => {
+    if (!query) return true;
+    const lowerQuery = query.toLowerCase();
+    return (
+      note.title.toLowerCase().includes(lowerQuery) ||
+      note.content.toLowerCase().includes(lowerQuery)
+    );
   });
 
   return (
@@ -57,18 +42,16 @@ export default async function NotesIndexPage(props: {
       {/* Search Bar */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-        <Form action="/dashboard/notes">
-          <input
-            type="search"
-            name="q"
-            placeholder="Search notes..."
-            defaultValue={query}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
-          />
-        </Form>
+        <input
+          type="search"
+          placeholder="Search notes..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+        />
       </div>
 
-      {notes.length === 0 ? (
+      {filteredNotes.length === 0 ? (
         <div className="flex flex-1 items-center justify-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02] py-20 mt-4">
           <div className="text-center">
             <FileText className="mx-auto h-10 w-10 text-zinc-600 mb-4" />
@@ -78,28 +61,31 @@ export default async function NotesIndexPage(props: {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-          {notes.map((note) => (
-            <Link
-              key={note.id}
-              href={`/dashboard/notes/${note.id}`}
-              className="group flex flex-col rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:border-indigo-500/50 hover:bg-white/10"
-            >
-              <h3 className="font-semibold text-lg truncate group-hover:text-indigo-400 transition-colors">
-                {note.title}
-              </h3>
-              <p className="mt-2 text-sm text-zinc-400 line-clamp-3 leading-relaxed flex-1">
-                {note.content}
-              </p>
-              <div className="mt-6 flex items-center justify-between text-xs text-zinc-500">
-                <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
-                {note._count.tests > 0 && (
-                  <span className="flex items-center gap-1 text-indigo-400/80 bg-indigo-500/10 px-2 py-0.5 rounded-full">
-                    {note._count.tests} test{note._count.tests > 1 ? "s" : ""}
-                  </span>
-                )}
-              </div>
-            </Link>
-          ))}
+          {filteredNotes.map((note) => {
+            const testCount = tests.filter((t) => t.noteId === note.id).length;
+            return (
+              <Link
+                key={note.id}
+                href={`/dashboard/notes/${note.id}`}
+                className="group flex flex-col rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:border-indigo-500/50 hover:bg-white/10"
+              >
+                <h3 className="font-semibold text-lg truncate group-hover:text-indigo-400 transition-colors">
+                  {note.title}
+                </h3>
+                <p className="mt-2 text-sm text-zinc-400 line-clamp-3 leading-relaxed flex-1 whitespace-pre-wrap">
+                  {note.content}
+                </p>
+                <div className="mt-6 flex items-center justify-between text-xs text-zinc-500">
+                  <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                  {testCount > 0 && (
+                    <span className="flex items-center gap-1 text-indigo-400/80 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                      {testCount} test{testCount > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </main>

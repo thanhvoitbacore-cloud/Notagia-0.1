@@ -25,7 +25,7 @@ export default function Home() {
         
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
           <Link 
-            href="/login"
+            href="/dashboard"
             className="group relative inline-flex h-12 items-center justify-center overflow-hidden rounded-full bg-white px-8 font-medium text-black transition-all duration-300 hover:scale-105 hover:bg-zinc-200"
           >
             <span>Get Started</span>

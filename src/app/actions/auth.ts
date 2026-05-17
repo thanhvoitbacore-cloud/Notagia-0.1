@@ -46,7 +46,7 @@ export async function signup(
       data: { name, email, password: hashedPassword },
     });
 
-    await createSession(user.id);
+    await createSession(user.id, user.role);
   } catch (error: any) {
     return { error: `Signup failed: ${error?.message || error}` };
   }
@@ -71,9 +71,15 @@ export async function login(
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) return { error: "Invalid email or password." };
 
-    await createSession(user.id);
+    await createSession(user.id, user.role);
+
+    // Role-based redirect — must happen outside try/catch
+    if (user.role === "ADMIN") {
+      redirect("/admin");
+    }
   } catch (error: any) {
-    return { error: `Login failed: ${error?.message || error}` };
+    // redirect() throws internally — rethrow it
+    throw error;
   }
 
   redirect("/dashboard");

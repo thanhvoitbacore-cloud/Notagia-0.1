@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { submitTestAttempt } from "@/app/actions/tests";
 import { CheckCircle2, XCircle, Timer, AlertCircle } from "lucide-react";
 import Link from "next/link";
-
-type Option = { id: string; optionText: string };
-type Question = { id: string; questionText: string; correctAnswerId: string; options: Option[] };
-type Test = { id: string; title: string; questions: Question[] };
+import { Option, Question, Test } from "@/lib/store";
 
 export function TestPlayer({ test }: { test: Test }) {
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -15,7 +11,6 @@ export function TestPlayer({ test }: { test: Test }) {
   const [isFinished, setIsFinished] = useState(false);
   const [timeTaken, setTimeTaken] = useState(0);
   const [score, setScore] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -48,14 +43,6 @@ export function TestPlayer({ test }: { test: Test }) {
       if (selectedAnswers[q.id] === q.correctAnswerId) finalScore += 1;
     });
     setScore(finalScore);
-
-    setIsSubmitting(true);
-    try {
-      await submitTestAttempt(test.id, finalScore, timeTaken);
-    } catch (error) {
-      console.error("Failed to save attempt", error);
-    }
-    setIsSubmitting(false);
   };
 
   if (isFinished) {
@@ -196,10 +183,10 @@ export function TestPlayer({ test }: { test: Test }) {
         </p>
         <button
           onClick={handleNext}
-          disabled={!selectedAnswers[currentQ.id] || isSubmitting}
+          disabled={!selectedAnswers[currentQ.id]}
           className="rounded-xl py-3 px-8 bg-white text-black font-bold disabled:opacity-50 transition hover:bg-zinc-200"
         >
-          {isLastQ ? (isSubmitting ? "Finishing..." : "Finish Test") : "Next Question"}
+          {isLastQ ? "Finish Test" : "Next Question"}
         </button>
       </div>
     </div>

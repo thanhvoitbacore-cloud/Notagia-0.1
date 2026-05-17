@@ -1,35 +1,22 @@
-import { getSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+"use client";
+
 import Link from "next/link";
-import { Brain, Search, DatabaseZap, Clock, Award } from "lucide-react";
+import { Brain, Search, DatabaseZap } from "lucide-react";
+import { useStore } from "@/lib/store";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
-export default async function TestsIndexPage(props: {
-  params: Promise<any>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+export default function TestsIndexPage() {
+  const { tests, notes, isLoaded } = useStore();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
+  const [query, setQuery] = useState(initialQuery);
 
-  const resolvedSearchParams = await props.searchParams;
-  const queryParam = resolvedSearchParams?.q;
-  const query = typeof queryParam === "string" ? queryParam : "";
+  if (!isLoaded) return null;
 
-  const tests = await prisma.test.findMany({
-    where: {
-      userId: session.userId,
-      ...(query ? { title: { contains: query, mode: "insensitive" } } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: { select: { questions: true } },
-      note: { select: { title: true } },
-      attempts: { 
-        where: { userId: session.userId },
-        orderBy: { score: "desc" },
-        take: 1
-      }
-    },
+  const filteredTests = tests.filter((test) => {
+    if (!query) return true;
+    return test.title.toLowerCase().includes(query.toLowerCase());
   });
 
   return (
@@ -44,18 +31,16 @@ export default async function TestsIndexPage(props: {
       {/* Search Bar */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-        <form>
-          <input
-            type="search"
-            name="q"
-            placeholder="Search tests..."
-            defaultValue={query}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
-          />
-        </form>
+        <input
+          type="search"
+          placeholder="Search tests..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-zinc-500 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+        />
       </div>
 
-      {tests.length === 0 ? (
+      {filteredTests.length === 0 ? (
         <div className="flex flex-1 items-center justify-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02] py-20 mt-4">
           <div className="text-center p-6 max-w-sm">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[20px] bg-indigo-500/10 border border-indigo-500/20">
@@ -70,9 +55,8 @@ export default async function TestsIndexPage(props: {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
-          {tests.map((test) => {
-            const bestAttempt = test.attempts[0];
-            
+          {filteredTests.map((test) => {
+            const note = notes.find((n) => n.id === test.noteId);
             return (
               <div
                 key={test.id}
@@ -82,33 +66,17 @@ export default async function TestsIndexPage(props: {
                   <h3 className="font-semibold text-lg line-clamp-2 leading-tight">
                     {test.title}
                   </h3>
-                  {test.isPublic && (
-                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-md">
-                      Public
-                    </span>
-                  )}
                 </div>
                 
                 <p className="mt-2 text-sm text-zinc-400 flex items-center gap-1.5">
-                  Based on: <Link href={`/dashboard/notes/${test.noteId}`} className="text-indigo-400 hover:underline truncate">{test.note.title}</Link>
+                  Based on: <Link href={`/dashboard/notes/${test.noteId}`} className="text-indigo-400 hover:underline truncate">{note?.title || "Unknown Note"}</Link>
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-3 mb-6">
                   <div className="flex items-center gap-2 bg-black/40 rounded-lg py-2 px-3 border border-white/5">
                     <Brain className="h-4 w-4 text-zinc-500" />
-                    <span className="text-sm font-medium">{test._count.questions} Qs</span>
+                    <span className="text-sm font-medium">{test.questions?.length || 0} Qs</span>
                   </div>
-                  {bestAttempt ? (
-                    <div className="flex items-center gap-2 bg-indigo-500/10 rounded-lg py-2 px-3 border border-indigo-500/20">
-                      <Award className="h-4 w-4 text-indigo-400" />
-                      <span className="text-sm font-bold text-indigo-300">{bestAttempt.score}/{test._count.questions}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 bg-black/40 rounded-lg py-2 px-3 border border-white/5">
-                      <Clock className="h-4 w-4 text-zinc-500" />
-                      <span className="text-sm font-medium text-zinc-400">Not taken</span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="mt-auto flex w-full gap-2">

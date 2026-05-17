@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, LayoutDashboard, FileText, Brain, Users, Settings } from "lucide-react";
-import { logout } from "@/app/actions/auth";
+import { LayoutDashboard, FileText, Brain, Settings } from "lucide-react";
 
-export function DashboardSidebar({ user }: { user: { name: string | null; email: string } }) {
+export function DashboardSidebar() {
   const pathname = usePathname();
 
   const navLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Notes", href: "/dashboard/notes", icon: FileText },
     { name: "Tests", href: "/dashboard/tests", icon: Brain },
-    { name: "Community", href: "/dashboard/community", icon: Users },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ];
 
@@ -46,28 +44,6 @@ export function DashboardSidebar({ user }: { user: { name: string | null; email:
           );
         })}
       </nav>
-
-      <div className="mt-auto border-t border-white/10 pt-4 flex flex-col gap-2">
-        <div className="flex items-center gap-3 px-2 py-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400 text-sm font-bold border border-indigo-500/30">
-            {user.name ? user.name[0].toUpperCase() : user.email[0].toUpperCase()}
-          </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-medium truncate">{user.name || "Student"}</span>
-            <span className="text-xs text-zinc-500 truncate">{user.email}</span>
-          </div>
-        </div>
-        
-        <form action={logout}>
-          <button
-            type="submit"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-zinc-400 hover:bg-red-500/10 hover:text-red-400 transition"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
-        </form>
-      </div>
     </aside>
   );
 }
