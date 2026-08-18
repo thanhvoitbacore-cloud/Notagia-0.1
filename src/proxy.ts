@@ -3,12 +3,12 @@ import { decrypt } from "@/lib/session";
 import { cookies } from "next/headers";
 
 const protectedRoutes = ["/dashboard", "/notes"];
-const publicRoutes = ["/login", "/signup", "/"];
+const publicRoutes = ["/login", "/signup"];
 
-export default async function middleware(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
   const isProtected = protectedRoutes.some((r) => path.startsWith(r));
-  const isPublic = publicRoutes.includes(path);
+  const isPublic = publicRoutes.some((r) => path.startsWith(r));
 
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session")?.value;
@@ -18,7 +18,7 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  if (isPublic && session && path !== "/") {
+  if (isPublic && session) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
   }
 
@@ -28,3 +28,4 @@ export default async function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
+
