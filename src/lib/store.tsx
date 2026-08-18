@@ -40,6 +40,10 @@ type StoreState = {
   deleteNote: (id: string) => void;
   addTest: (test: Omit<Test, "id" | "createdAt">) => Test;
   deleteTest: (id: string) => void;
+  exportWorkspace: () => void;
+  importWorkspace: (jsonContent: string) => { success: boolean; notesCount: number; testsCount: number; error?: string };
+  exportNoteAsMarkdown: (noteId: string) => void;
+  clearWorkspace: () => void;
   isLoaded: boolean;
 };
 
@@ -50,27 +54,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [tests, setTests] = useState<Test[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from sessionStorage on mount
   useEffect(() => {
-    const savedNotes = sessionStorage.getItem("notagia_notes");
-    const savedTests = sessionStorage.getItem("notagia_tests");
-    if (savedNotes) setNotes(JSON.parse(savedNotes));
-    if (savedTests) setTests(JSON.parse(savedTests));
     setIsLoaded(true);
   }, []);
-
-  // Save to sessionStorage when updated
-  useEffect(() => {
-    if (isLoaded) {
-      sessionStorage.setItem("notagia_notes", JSON.stringify(notes));
-    }
-  }, [notes, isLoaded]);
-
-  useEffect(() => {
-    if (isLoaded) {
-      sessionStorage.setItem("notagia_tests", JSON.stringify(tests));
-    }
-  }, [tests, isLoaded]);
 
   const addNote = (noteData: Omit<Note, "id" | "createdAt">) => {
     const newNote: Note = {
@@ -88,7 +74,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const deleteNote = (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
-    // Also delete associated tests
     setTests((prev) => prev.filter((t) => t.noteId !== id));
   };
 
@@ -106,6 +91,68 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setTests((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const exportWorkspace = () => {
+    const data = {
+      version: "0.1",
+      exportedAt: new Date().toISOString(),
+      notes,
+      tests,
+    };
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const filename = `notagia-workspace-${new Date().toISOString().slice(0, 10)}.notagia.json`;
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importWorkspace = (jsonContent: string) => {
+    try {
+      const data = JSON.parse(jsonContent);
+      const importedNotes: Note[] = Array.isArray(data.notes) ? data.notes : [];
+      const importedTests: Test[] = Array.isArray(data.tests) ? data.tests : [];
+
+      setNotes(importedNotes);
+      setTests(importedTests);
+
+      return {
+        success: true,
+        notesCount: importedNotes.length,
+        testsCount: importedTests.length,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        notesCount: 0,
+        testsCount: 0,
+        error: err?.message || "Invalid workspace file format",
+      };
+    }
+  };
+
+  const exportNoteAsMarkdown = (noteId: string) => {
+    const note = notes.find((n) => n.id === noteId);
+    if (!note) return;
+
+    const mdContent = `# ${note.title}\n\n${note.content}\n`;
+    const blob = new Blob([mdContent], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeTitle = note.title.replace(/[^a-z0-9_-]/gi, "_").toLowerCase() || "note";
+    a.href = url;
+    a.download = `${safeTitle}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const clearWorkspace = () => {
+    setNotes([]);
+    setTests([]);
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -116,6 +163,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         deleteNote,
         addTest,
         deleteTest,
+        exportWorkspace,
+        importWorkspace,
+        exportNoteAsMarkdown,
+        clearWorkspace,
         isLoaded,
       }}
     >

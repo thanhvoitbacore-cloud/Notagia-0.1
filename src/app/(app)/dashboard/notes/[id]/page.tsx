@@ -15,7 +15,7 @@ export default function NoteDetailPage({
   const resolvedParams = use(params);
   const id = resolvedParams.id;
   const router = useRouter();
-  const { notes, updateNote, deleteNote, isLoaded } = useStore();
+  const { notes, updateNote, deleteNote, exportNoteAsMarkdown, isLoaded } = useStore();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
@@ -68,6 +68,14 @@ export default function NoteDetailPage({
               className="inline-flex h-9 items-center justify-center rounded-xl px-4 text-sm font-medium text-red-500/80 transition hover:bg-red-500/10 hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => exportNoteAsMarkdown(note.id)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/10 hover:text-white"
+              title="Download Markdown (.md)"
+            >
+              .md
             </button>
             <button
               type="submit"

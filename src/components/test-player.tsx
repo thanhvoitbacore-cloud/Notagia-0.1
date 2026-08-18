@@ -77,11 +77,8 @@ export function TestPlayer({ test }: { test: Test }) {
           </div>
 
           <div className="flex justify-center gap-4">
-            <Link href="/dashboard/tests" className="rounded-xl border border-white/10 px-6 py-3 font-semibold hover:bg-white/5 transition">
+            <Link href="/dashboard/tests" className="rounded-xl bg-indigo-500 px-6 py-3 font-semibold text-white shadow-[0_0_15px_rgba(99,102,241,0.5)] hover:bg-indigo-400 hover:scale-105 transition">
               Back to Tests
-            </Link>
-            <Link href={`/dashboard/community`} className="rounded-xl bg-indigo-500 px-6 py-3 font-semibold text-white shadow-[0_0_15px_rgba(99,102,241,0.5)] hover:bg-indigo-400 hover:scale-105 transition">
-              View Leaderboards
             </Link>
           </div>
         </div>
